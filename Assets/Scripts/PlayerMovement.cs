@@ -52,6 +52,7 @@ public class PlayerMovement : NetworkBehaviour
         //Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
         body = GetComponent<Rigidbody>();
+
     }
 
     public override void OnStartLocalPlayer()
@@ -63,9 +64,16 @@ public class PlayerMovement : NetworkBehaviour
     // Update is called once per frame
     void Update ()
     {
+        Debug.Log(isLocalPlayer);
         if (!isLocalPlayer)
         {
+            
+            GetComponentInChildren<Camera>().enabled = false;
             return;
+        }
+        else
+        {
+            GetComponentInChildren<Camera>().enabled = true;
         }
 
         horizontal = Input.GetAxis("Horizontal");
