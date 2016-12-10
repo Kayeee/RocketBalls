@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class Goal : MonoBehaviour {
 
-    public int redScore = 0;
-    public Text redScoreText;
+    public int score = 0;
+    public Text scoreText;
 
     // Use this for initialization
     void Start () {
@@ -20,14 +20,16 @@ public class Goal : MonoBehaviour {
 
     void OnCollisionEnter(Collision col)
     {
-        if (col.gameObject.GetComponent<GameBall>() != null)
+        GameBall gameBall = col.gameObject.GetComponent<GameBall>();
+        if (gameBall != null)
         {
-            Destroy(col.gameObject);
-            redScore += (int)col.gameObject.transform.localScale.x;
+            gameBall.Goal();
 
-            redScoreText.text = "Score: " + redScore.ToString();
+            score += (int)col.gameObject.transform.localScale.x;
 
-            Debug.Log("Score: " + redScore);
+            scoreText.text = "Score: " + score.ToString();
+
+            Debug.Log("Score: " + score);
         }
     }
 }
