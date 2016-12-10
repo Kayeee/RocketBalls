@@ -4,7 +4,7 @@ using System.Collections;
 public class GoalCelebration : MonoBehaviour
 {
     [SerializeField]
-    ParticleSystem particleSystem;
+    //ParticleSystem particleSystem;
 
     float timeCreated;
 
@@ -12,7 +12,6 @@ public class GoalCelebration : MonoBehaviour
     void Start()
     {
         timeCreated = Time.time;
-        particleSystem.Play();
     }
 
     // Update is called once per frame
