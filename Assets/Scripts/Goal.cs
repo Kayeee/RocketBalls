@@ -20,9 +20,11 @@ public class Goal : MonoBehaviour {
 
     void OnCollisionEnter(Collision col)
     {
-        if (col.gameObject.GetComponent<GameBall>() != null)
+        GameBall gameBall = col.gameObject.GetComponent<GameBall>();
+        if (gameBall != null)
         {
-            Destroy(col.gameObject);
+            gameBall.Goal();
+
             redScore += (int)col.gameObject.transform.localScale.x;
 
             redScoreText.text = "Score: " + redScore.ToString();
