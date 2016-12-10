@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class Goal : MonoBehaviour {
 
-    public int redScore = 0;
-    public Text redScoreText;
+    public int score = 0;
+    public Text scoreText;
 
     // Use this for initialization
     void Start () {
@@ -25,11 +25,11 @@ public class Goal : MonoBehaviour {
         {
             gameBall.Goal();
 
-            redScore += (int)col.gameObject.transform.localScale.x;
+            score += (int)col.gameObject.transform.localScale.x;
 
-            redScoreText.text = "Score: " + redScore.ToString();
+            scoreText.text = "Score: " + score.ToString();
 
-            Debug.Log("Score: " + redScore);
+            Debug.Log("Score: " + score);
         }
     }
 }
