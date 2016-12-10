@@ -1,9 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class PlayerMovement : MonoBehaviour {
-
+public class PlayerMovement : NetworkBehaviour
+{
 
     [SerializeField]
     GameObject projectileOrigin;
@@ -51,11 +52,30 @@ public class PlayerMovement : MonoBehaviour {
         //Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
         body = GetComponent<Rigidbody>();
+
     }
-	
-	// Update is called once per frame
-	void Update ()
+
+    public override void OnStartLocalPlayer()
     {
+        GetComponent<MeshRenderer>().material.color = Color.blue;
+        Debug.Log("The color is blue");
+    }
+
+    // Update is called once per frame
+    void Update ()
+    {
+        Debug.Log(isLocalPlayer);
+        if (!isLocalPlayer)
+        {
+            
+            GetComponentInChildren<Camera>().enabled = false;
+            return;
+        }
+        else
+        {
+            GetComponentInChildren<Camera>().enabled = true;
+        }
+
         horizontal = Input.GetAxis("Horizontal");
         vertical = Input.GetAxis("Vertical");
 
