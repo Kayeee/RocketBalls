@@ -18,18 +18,18 @@ public class Goal : MonoBehaviour {
         
     }
 
-    void OnCollisionEnter(Collision col)
-    {
-        GameBall gameBall = col.gameObject.GetComponent<GameBall>();
-        if (gameBall != null)
-        {
-            gameBall.Goal();
+    //void OnCollisionEnter(Collision col)
+    //{
+    //    GameBall gameBall = col.gameObject.GetComponent<GameBall>();
+    //    if (gameBall != null)
+    //    {
+    //        gameBall.Goal();
 
-            score += (int)col.gameObject.transform.localScale.x;
+    //        score += (int)col.gameObject.transform.localScale.x;
 
-            scoreText.text = "Score: " + score.ToString();
+    //        scoreText.text = "Score: " + score.ToString();
 
-            Debug.Log("Score: " + score);
-        }
-    }
+    //        Debug.Log("Score: " + score);
+    //    }
+    //}
 }

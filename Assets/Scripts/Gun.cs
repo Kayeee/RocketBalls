@@ -11,12 +11,10 @@ public class Gun : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         gunBobble = GetComponent<Animator>();
-        playerMovement = GetComponent<PlayerMovement>();
     }
 	
 	// Update is called once per frame
 	void Update () {
-        gunBobble.SetFloat("MoveSpeed", playerMovement.GetComponent<Rigidbody>().velocity.magnitude);
-        Debug.Log("Velocity: " + playerMovement.GetComponent<Rigidbody>().velocity.magnitude);
+        gunBobble.SetFloat("MoveSpeed", playerMovement.GetComponent<Rigidbody>().velocity.magnitude / playerMovement.maxMoveSpeed);
 	}
 }

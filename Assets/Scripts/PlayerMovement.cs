@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -25,7 +26,7 @@ public class PlayerMovement : NetworkBehaviour
     float moveForce = 1;
 
     [SerializeField]
-    float maxMoveSpeed = 100;
+    public float maxMoveSpeed = 100;
 
     [SerializeField]
     float lookSensitivity = .5f;
@@ -58,16 +59,13 @@ public class PlayerMovement : NetworkBehaviour
     public override void OnStartLocalPlayer()
     {
         GetComponent<MeshRenderer>().material.color = Color.blue;
-        Debug.Log("The color is blue");
     }
 
     // Update is called once per frame
     void Update ()
     {
-        Debug.Log(isLocalPlayer);
         if (!isLocalPlayer)
-        {
-            
+        {   
             GetComponentInChildren<Camera>().enabled = false;
             return;
         }
@@ -88,7 +86,13 @@ public class PlayerMovement : NetworkBehaviour
         body.AddForce(verticalLook * new Vector3(0, 0, normalizeAxis.z) * moveForce);
 
         CapsuleCollider collider = GetComponent<CapsuleCollider>();
-        grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.height / 2);
+        grounded = false;
+        try {
+            grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.height / 2);
+        } catch (Exception e)
+        {
+            Debug.Log("test");
+        }
         
         if (grounded && Time.time - lastJumpTime > .5)
         {
