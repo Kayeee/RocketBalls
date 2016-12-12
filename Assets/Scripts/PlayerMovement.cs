@@ -126,6 +126,8 @@ public class PlayerMovement : NetworkBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
+            Cursor.lockState = CursorLockMode.Locked;
+
             Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, Quaternion.identity);
             tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
             tempProjectile.AddForce(body.velocity);

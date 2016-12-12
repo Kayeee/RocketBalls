@@ -10,14 +10,12 @@ public class GameBall : MonoBehaviour {
     [SerializeField]
     Goal[] goals;
 
+    AudioSource ballSounds;
+
 	// Use this for initialization
 	void Start ()
     {
-	}
-
-    private Type TypeOf(Goal goal)
-    {
-        throw new NotImplementedException();
+        ballSounds = GetComponent<AudioSource>();
     }
 
     // Update is called once per frame
@@ -25,9 +23,9 @@ public class GameBall : MonoBehaviour {
     {
 		foreach (Goal goal in goals)
         {            
-            if (Mathf.Abs(transform.position.x - goal.transform.position.x) < 25 &&
-                Mathf.Abs(transform.position.z - goal.transform.position.z) < 25 &&
-                Mathf.Abs(transform.position.y - goal.transform.position.y) < 25)
+            if (Mathf.Abs(transform.position.x - goal.transform.position.x) < 25 * 2 &&
+                Mathf.Abs(transform.position.z - goal.transform.position.z) < 25 * 2 &&
+                Mathf.Abs(transform.position.y - goal.transform.position.y) < 25 * 2)
             {
                 Bounds goalBounds = goal.GetComponent<MeshRenderer>().bounds;
                 Bounds ballBounds = GetComponent<MeshRenderer>().bounds;
@@ -43,6 +41,29 @@ public class GameBall : MonoBehaviour {
                     goal.scoreText.text = "Score: " + goal.score.ToString();
 
                     Debug.Log("Score: " + goal.score);
+                }
+                else
+                {
+                    float amountIn = 0;
+
+                    float distance_min = goalBounds.SqrDistance(ballBounds.min);
+                    float distance_max = goalBounds.SqrDistance(ballBounds.max);
+
+                    if (distance_min == 0 || distance_max == 0) //Ball is intersecting goal
+                    {
+                        amountIn = (distance_min + distance_max) / goal.transform.localScale.x;
+
+                        if (!ballSounds.isPlaying)
+                        {
+                            ballSounds.Play();
+                        }
+
+                        ballSounds.pitch = (1 - amountIn) * 2 + 1 ;
+                    }
+                    else
+                    {
+                        ballSounds.Stop();
+                    }
                 }
             }
         }
