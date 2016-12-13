@@ -7,6 +7,9 @@ using UnityEngine.Networking;
 public class PlayerMovement : NetworkBehaviour
 {
     [SerializeField]
+    Transform[] spawnLocations;
+
+    [SerializeField]
     GameObject projectileOrigin;
 
     [SerializeField]
@@ -48,7 +51,11 @@ public class PlayerMovement : NetworkBehaviour
     void Start () {
         Cursor.lockState = CursorLockMode.Locked;
         body = GetComponent<Rigidbody>();
+        int randSpawnIndex = UnityEngine.Random.Range(0, spawnLocations.Length);
 
+        Transform spawnLocation = spawnLocations[randSpawnIndex];
+        transform.position = spawnLocation.position;
+        transform.rotation = spawnLocation.rotation;
     }
 
     public override void OnStartLocalPlayer()
@@ -156,6 +163,17 @@ public class PlayerMovement : NetworkBehaviour
             Cmd_Shoot();
         }
 
+        if (Input.GetMouseButton(1))
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+
+            //Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
+            //tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
+            //tempProjectile.AddForce(body.velocity);
+            //NetworkServer.Spawn(tempProjectile.gameObject);
+            //Cmd_ShootSmall();
+        }
+
         //currentMousePosition = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         deltaMousePosition = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         
@@ -170,6 +188,17 @@ public class PlayerMovement : NetworkBehaviour
     public void Cmd_Shoot()
     {
         Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
+        tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
+        tempProjectile.AddForce(body.velocity);
+        NetworkServer.Spawn(tempProjectile.gameObject);
+    }
+
+    [Command]
+    public void Cmd_ShootSmall()
+    {
+        Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
+        tempProjectile.transform.localScale = Vector3.one / 2;
+        tempProjectile.GetComponent<Rigidbody>().mass = .5f;
         tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
         tempProjectile.AddForce(body.velocity);
         NetworkServer.Spawn(tempProjectile.gameObject);
