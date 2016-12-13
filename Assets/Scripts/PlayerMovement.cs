@@ -6,7 +6,6 @@ using UnityEngine.Networking;
 
 public class PlayerMovement : NetworkBehaviour
 {
-
     [SerializeField]
     GameObject projectileOrigin;
 
@@ -30,8 +29,7 @@ public class PlayerMovement : NetworkBehaviour
 
     [SerializeField]
     float lookSensitivity = .5f;
-
-
+    
     bool grounded = false;
     float lastJumpTime;
 
@@ -39,9 +37,7 @@ public class PlayerMovement : NetworkBehaviour
     float vertical;
     float jump;
     float crouch;
-
-
-
+    
     Vector2 prevoiousMousePosition;
     Vector2 currentMousePosition;
     Vector2 deltaMousePosition;
@@ -50,7 +46,6 @@ public class PlayerMovement : NetworkBehaviour
 
     // Use this for initialization
     void Start () {
-        //Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
         body = GetComponent<Rigidbody>();
 
@@ -58,20 +53,33 @@ public class PlayerMovement : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
+        base.OnStartLocalPlayer();
+
+        GetComponent<MeshRenderer>().material.color = Color.blue;
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+
         GetComponent<MeshRenderer>().material.color = Color.blue;
     }
 
     // Update is called once per frame
     void Update ()
     {
+        Debug.Log("isLocalPlayer: " + isLocalPlayer);
+
         if (!isLocalPlayer)
         {   
             GetComponentInChildren<Camera>().enabled = false;
+            GetComponentInChildren<AudioListener>().enabled = false;
             return;
         }
         else
         {
             GetComponentInChildren<Camera>().enabled = true;
+            GetComponentInChildren<AudioListener>().enabled = true;
         }
 
         horizontal = Input.GetAxis("Horizontal");
@@ -79,20 +87,33 @@ public class PlayerMovement : NetworkBehaviour
 
         Vector3 normalizeAxis = new Vector3(horizontal, 0, vertical).normalized;
 
-        //transform.Translate(playerCamera.transform.rotation * new Vector3(horizontal, 0, vertical), Space.Self);
-        body.AddForce(playerCamera.transform.rotation * new Vector3(normalizeAxis.x, 0, 0) * moveForce);
+
+        if (normalizeAxis.magnitude > 0)
+        {
+            GetComponent<CapsuleCollider>().material.dynamicFriction = 0;
+            GetComponent<CapsuleCollider>().material.staticFriction = 0;
+        }
+        else
+        {
+            GetComponent<CapsuleCollider>().material.dynamicFriction = 40;
+            GetComponent<CapsuleCollider>().material.staticFriction = 40;
+        }
+
+        float adjustedMoveForce = moveForce;
+
+        if (!grounded)
+        {
+            adjustedMoveForce = moveForce / 10;
+        }
+
+        body.AddForce(playerCamera.transform.rotation * new Vector3(normalizeAxis.x, 0, 0) * adjustedMoveForce);
 
         Quaternion verticalLook = Quaternion.AngleAxis(playerCamera.transform.rotation.eulerAngles.y, Vector3.up);
-        body.AddForce(verticalLook * new Vector3(0, 0, normalizeAxis.z) * moveForce);
+        body.AddForce(verticalLook * new Vector3(0, 0, normalizeAxis.z) * adjustedMoveForce);
 
         CapsuleCollider collider = GetComponent<CapsuleCollider>();
-        grounded = false;
-        try {
-            grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.height / 2);
-        } catch (Exception e)
-        {
-            Debug.Log("test");
-        }
+        
+        grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.height / 2);
         
         if (grounded && Time.time - lastJumpTime > .5)
         {
@@ -128,9 +149,11 @@ public class PlayerMovement : NetworkBehaviour
         {
             Cursor.lockState = CursorLockMode.Locked;
 
-            Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, Quaternion.identity);
-            tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
-            tempProjectile.AddForce(body.velocity);
+            //Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
+            //tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
+            //tempProjectile.AddForce(body.velocity);
+            //NetworkServer.Spawn(tempProjectile.gameObject);
+            Cmd_Shoot();
         }
 
         //currentMousePosition = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
@@ -141,5 +164,14 @@ public class PlayerMovement : NetworkBehaviour
 
 
         prevoiousMousePosition = currentMousePosition;
+    }
+
+    [Command]
+    public void Cmd_Shoot()
+    {
+        Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
+        tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
+        tempProjectile.AddForce(body.velocity);
+        NetworkServer.Spawn(tempProjectile.gameObject);
     }
 }

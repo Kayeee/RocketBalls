@@ -59,6 +59,7 @@ public class GameBall : MonoBehaviour {
                         }
 
                         ballSounds.pitch = (1 - amountIn) * 2 + 1 ;
+                        ballSounds.volume = transform.localScale.x / 10 + .5f;
                     }
                     else
                     {
