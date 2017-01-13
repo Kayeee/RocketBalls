@@ -2,23 +2,63 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Networking;
 
 public class Level : MonoBehaviour {
 
-    bool gameStarted = false;
+    public bool gameStarted = false;
+    public GameObject blueWinText;
+    public GameObject redWinText;
+    public GameObject tieText;
+    public int blueScore;
+    public int redScore;
 
-	// Use this for initialization
-	void Start () {
-	}
-	
-	// Update is called once per frame
-	void Update () {
+    // Use this for initialization
+    void Start () {
+        blueWinText.SetActive(false);
+        redWinText.SetActive(false);
+        tieText.SetActive(false);
+    }
+
+    IEnumerator StartNewGame()
+    {
+        yield return new WaitForSeconds(3);
+
+        FindObjectsOfType<NetworkManager>()[0].StopHost();
+
+        if (gameStarted)
+        {
+            ReloadScene();
+            //gameStarted = false;
+        }
+    }
+
+    // Update is called once per frame
+    void Update () {
         if (FindObjectsOfType<GameBall>().Length == 0)
         {
-            if (gameStarted)
+            if (blueScore > redScore)
             {
-                ReloadScene();
+                blueWinText.SetActive(true);
             }
+            else if (redScore > blueScore)
+            {
+                redWinText.SetActive(true);
+            }
+            else 
+            {
+                tieText.SetActive(true);
+            }
+
+            StartCoroutine(StartNewGame());
+
+            //FindObjectsOfType<NetworkManager>()[0].StopHost();
+
+            //if (gameStarted)
+            //{
+            //    ReloadScene();
+            //    gameStarted = false;
+            //}
         }
         else 
         {
@@ -27,7 +67,7 @@ public class Level : MonoBehaviour {
         
         if (Input.GetKey(KeyCode.F5))
         {
-            ReloadScene();
+            StartCoroutine(StartNewGame());
         }
     }
 

@@ -14,14 +14,21 @@ public class Projectile : MonoBehaviour {
 
     int gravityUpdatesPerSecond = 1;
     float lastGravityUpdateTime = 0;
-
-
+    
     [SerializeField]
     public PlayerMovement.Team team;
 
-	// Use this for initialization
-	void Start () {
+    [SerializeField]
+    GameObject bounds;
+
+    bool destroyable = false;
+
+    Goal[] goals;
+
+    // Use this for initialization
+    void Start () {
         lastGravityUpdateTime = Time.time;
+        goals = FindObjectsOfType<Goal>();
     }
 	
 	// Update is called once per frame
@@ -48,10 +55,47 @@ public class Projectile : MonoBehaviour {
                 }
             }
         }
+
+        foreach (Goal goal in goals)
+        {
+            if (goal.team != team)
+            {
+                if (Mathf.Abs(transform.position.x - goal.transform.position.x) < 25 * 2 &&
+                    Mathf.Abs(transform.position.z - goal.transform.position.z) < 25 * 2 &&
+                    Mathf.Abs(transform.position.y - goal.transform.position.y) < 25 * 2)
+                {
+                    Bounds goalBounds = goal.GetComponent<MeshRenderer>().bounds;
+                    Bounds ballBounds = bounds.GetComponent<MeshRenderer>().bounds;
+
+                    bool ballInGoal = goalBounds.Contains(ballBounds.min) && goalBounds.Contains(ballBounds.max);
+
+                    if (ballInGoal)
+                    {
+                        if (destroyable)
+                        {
+                            Goal();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void Goal()
+    {
+        //GameObject celebrationTemp = Instantiate<GameObject>(celebrationPrefab, transform.position, Quaternion.identity);
+        //celebrationTemp.transform.localScale = transform.localScale;
+        Destroy(gameObject);
     }
 
     void OnCollisionEnter(Collision col)
     {
+        PlayerMovement player = col.gameObject.GetComponent<PlayerMovement>();
+        if (player == null)
+        {
+            destroyable = true;
+        }
+
         GameBall gameBall = col.gameObject.GetComponent<GameBall>();
         if (gameBall != null)
         {

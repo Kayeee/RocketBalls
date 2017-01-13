@@ -18,6 +18,10 @@ public class PlayerMovement : NetworkBehaviour
     Rigidbody projectilePrefabBlue;
     [SerializeField]
     Rigidbody projectilePrefab;
+    [SerializeField]
+    float gravityMultiplier;
+
+    Rigidbody playerRigidbody;
 
     [SerializeField]
     float projectileForce = 1;
@@ -27,6 +31,9 @@ public class PlayerMovement : NetworkBehaviour
 
     [SerializeField]
     float jumpForce = 1;
+    [SerializeField]
+    float airJumps = 1;
+    float airJumpCount = 0;
 
     [SerializeField]
     float moveForce = 1;
@@ -44,6 +51,11 @@ public class PlayerMovement : NetworkBehaviour
     float vertical;
     float jump;
     float crouch;
+    
+    float jumpInput;
+    float previousJumpInput;
+
+    Level level;
     
     Vector2 prevoiousMousePosition;
     Vector2 currentMousePosition;
@@ -66,10 +78,14 @@ public class PlayerMovement : NetworkBehaviour
     bool forceLocalPlayer = false;
     [SerializeField]
     LocalPlayer localPlayer = LocalPlayer.None;
-    public enum LocalPlayer { None, P1, P2 };
+    public enum LocalPlayer { None, P1, P2, P3, P4 };
 
     // Use this for initialization
     void Start () {
+        level = FindObjectOfType<Level>();
+
+        playerRigidbody = GetComponent<Rigidbody>();
+
         Cursor.lockState = CursorLockMode.Locked;
         body = GetComponent<Rigidbody>();
         
@@ -91,6 +107,8 @@ public class PlayerMovement : NetworkBehaviour
         {
             transform.position = spawnRed.position;
             transform.rotation = spawnRed.rotation;
+            float randOffset = UnityEngine.Random.Range(-5, 5);
+            transform.localPosition = transform.localPosition + new Vector3(randOffset, 0, -randOffset);
             GetComponent<MeshRenderer>().material.color = Color.red;
             foreach (MeshRenderer meshRenderer in GetComponentsInChildren<MeshRenderer>())
             {
@@ -102,6 +120,8 @@ public class PlayerMovement : NetworkBehaviour
         {
             transform.position = spawnBlue.position;
             transform.rotation = spawnBlue.rotation;
+            float randOffset = UnityEngine.Random.Range(-5, 5);
+            transform.localPosition = transform.localPosition + new Vector3(randOffset, 0, -randOffset);
             GetComponent<MeshRenderer>().material.color = Color.blue;
             foreach (MeshRenderer meshRenderer in GetComponentsInChildren<MeshRenderer>())
             {
@@ -128,32 +148,34 @@ public class PlayerMovement : NetworkBehaviour
     // Update is called once per frame
     void Update ()
     {
-        if (!forceLocalPlayer)
+        if (level.gameStarted)
         {
-            if (!isLocalPlayer)
+            if (!forceLocalPlayer)
             {
-                GetComponentInChildren<Camera>().enabled = false;
-                GetComponentInChildren<AudioListener>().enabled = false;
-                return;
+                if (!isLocalPlayer)
+                {
+                    GetComponentInChildren<Camera>().enabled = false;
+                    GetComponentInChildren<AudioListener>().enabled = false;
+                    return;
+                }
+                else
+                {
+                    GetComponentInChildren<Camera>().enabled = true;
+                    GetComponentInChildren<AudioListener>().enabled = true;
+                }
             }
-            else
-            {
-                GetComponentInChildren<Camera>().enabled = true;
-                GetComponentInChildren<AudioListener>().enabled = true;
-            }
-        }
 
-        if (localPlayer == LocalPlayer.P1)
-        {
-            ControlsP1();
-        }
-        else if (localPlayer == LocalPlayer.P2)
-        {
-            ControlsP2();
+            //if (localPlayer == LocalPlayer.P1)
+            {
+                ControlsKeyboard();
+            }
+            //ControllsController();
+
+            playerRigidbody.AddForce(Physics.gravity * gravityMultiplier * playerRigidbody.mass);
         }
     }
 
-    void ControlsP1()
+    void ControlsKeyboard()
     {
         horizontal = Input.GetAxis("Horizontal");
         vertical = Input.GetAxis("Vertical");
@@ -186,15 +208,30 @@ public class PlayerMovement : NetworkBehaviour
 
         CapsuleCollider collider = GetComponent<CapsuleCollider>();
 
-        grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.height / 2);
+        grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.bounds.extents.y + .1f);
 
-        if (grounded && Time.time - lastJumpTime > .5)
+        jumpInput = Input.GetAxis("Jump");
+
+        //Ground Jump
+        if (grounded && jumpInput != 0 && previousJumpInput == 0) //Time.time - lastJumpTime > .1
         {
-            jump = Input.GetAxis("Jump");
+            jump = jumpInput;
         }
         else
         {
             jump = 0;
+        }
+
+        //Air Jump
+        if (!grounded && airJumpCount < airJumps && jumpInput != 0 && previousJumpInput == 0)
+        { 
+            jump = jumpInput;
+            airJumpCount++;
+        }
+        
+        if (grounded)
+        {
+            airJumpCount = 0;
         }
 
         if (jump > 0)
@@ -203,6 +240,8 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         body.AddForce(Vector3.up * jump * jumpForce * -Physics.gravity.y);
+
+        previousJumpInput = Input.GetAxis("Jump");
 
         if (body.velocity.magnitude > maxMoveSpeed)
         {
@@ -238,16 +277,18 @@ public class PlayerMovement : NetworkBehaviour
         playerCamera.transform.Rotate(new Vector3(-deltaMousePosition.y * lookSensitivity, 0, 0), Space.Self);
     }
 
-    void ControlsP2()
+    void ControllsController()
     {
-        float p2_horizontal_move = Input.GetAxis("P2_Horizontal_Move");
-        float p2_vertical_move = Input.GetAxis("P2_Vertical_Move");
-        float p2_horizontal_look = Input.GetAxis("P2_Horizontal_Look");
-        float p2_vertical_look = Input.GetAxis("P2_Vertical_Look");
-        float p2_jump = Input.GetAxis("P2_Jump");
-        float p2_shoot = Input.GetAxis("P2_Shoot");
+        String playerString = localPlayer.ToString();
 
-        Vector3 normalizeAxis = new Vector3(p2_horizontal_move, 0, p2_vertical_move).normalized;
+        float controller_horizontal_move = Input.GetAxis(playerString + "_Horizontal_Move");
+        float controller_vertical_move = Input.GetAxis(playerString + "_Vertical_Move");
+        float controller_horizontal_look = Input.GetAxis(playerString + "_Horizontal_Look");
+        float controller_vertical_look = Input.GetAxis(playerString + "_Vertical_Look");
+        float controller_jump = Input.GetAxis(playerString + "_Jump");
+        float controller_shoot = Input.GetAxis(playerString + "_Shoot");
+
+        Vector3 normalizeAxis = new Vector3(controller_horizontal_move, 0, controller_vertical_move).normalized;
         
         if (normalizeAxis.magnitude > 0)
         {
@@ -278,7 +319,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (grounded && Time.time - lastJumpTime > .5)
         {
-            jump = Input.GetAxis("P2_Jump");
+            jump = controller_jump;
         }
         else
         {
@@ -306,7 +347,7 @@ public class PlayerMovement : NetworkBehaviour
             crouch = 0;
         }
 
-        if (p2_shoot > 0)
+        if (controller_shoot > 0)
         {
             if (!previousFireButtonState)
             {
@@ -320,25 +361,7 @@ public class PlayerMovement : NetworkBehaviour
             previousFireButtonState = false;
         }
 
-
-        //if (Input.GetMouseButton(1))
-        //{
-        //Cursor.lockState = CursorLockMode.Locked;
-
-        //Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
-        //tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
-        //tempProjectile.AddForce(body.velocity);
-        //NetworkServer.Spawn(tempProjectile.gameObject);
-        //Cmd_ShootSmall();
-        //}
-
-        //currentMousePosition = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-
-        //deltaMousePosition = new Vector2(Input.GetAxis("P2_Horizontal_Look"), Input.GetAxis("P2_Vertical_Look"));
-        //playerCamera.transform.Rotate(new Vector3(0, deltaMousePosition.x * lookSensitivity, 0), Space.World);
-        //playerCamera.transform.Rotate(new Vector3(-deltaMousePosition.y * lookSensitivity, 0, 0), Space.Self);
-
-        deltaMousePosition = new Vector2(Input.GetAxis("P2_Horizontal_Look"), Input.GetAxis("P2_Vertical_Look"));
+        deltaMousePosition = new Vector2(controller_horizontal_look, controller_vertical_look);
         playerCamera.transform.Rotate(new Vector3(0, deltaMousePosition.x * lookSensitivity, 0), Space.World);
         playerCamera.transform.Rotate(new Vector3(-deltaMousePosition.y * lookSensitivity, 0, 0), Space.Self);
     }
@@ -353,11 +376,17 @@ public class PlayerMovement : NetworkBehaviour
     [Command]
     public void Cmd_Shoot()
     {
+        Shoot();
+    }
+
+    public void Shoot()
+    {
         Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
         tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
         tempProjectile.AddForce(body.velocity);
         NetworkServer.Spawn(tempProjectile.gameObject);
     }
+
 
     [Command]
     public void Cmd_ShootSmall()
