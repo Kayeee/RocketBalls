@@ -7,6 +7,8 @@ public class CustomNetworking : MonoBehaviour {
 
     public NetworkManager manager;
 
+    bool started = false;
+
     // Use this for initialization
     void Start ()
     {
@@ -19,7 +21,11 @@ public class CustomNetworking : MonoBehaviour {
         if (!NetworkClient.active && !NetworkServer.active && manager.matchMaker == null)
         {
             //Debug.Log("Starting Server!");
-            manager.StartHost();
+            if (!started)
+            {
+                manager.StartHost();
+                started = true;
+            }
         }
         else
         {

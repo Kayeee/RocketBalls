@@ -47,8 +47,8 @@ public class PlayerMovement : NetworkBehaviour
     bool grounded = false;
     float lastJumpTime;
 
-    float horizontal;
-    float vertical;
+    float keyboard_horizontal_move;
+    float keyboard_vertical_move;
     float jump;
     float crouch;
     
@@ -165,7 +165,7 @@ public class PlayerMovement : NetworkBehaviour
                 }
             }
 
-            //if (localPlayer == LocalPlayer.P1)
+            if (localPlayer == LocalPlayer.P1)
             {
                 ControlsKeyboard();
             }
@@ -177,10 +177,27 @@ public class PlayerMovement : NetworkBehaviour
 
     void ControlsKeyboard()
     {
-        horizontal = Input.GetAxis("Horizontal");
-        vertical = Input.GetAxis("Vertical");
+        keyboard_horizontal_move = Input.GetAxis("Horizontal");
+        keyboard_vertical_move = Input.GetAxis("Vertical");
+        float keyboard_horizontal_look = Input.GetAxis("Mouse X");
+        float keyboard_vertical_look = Input.GetAxis("Mouse Y");
+        bool keyboard_shoot = Input.GetMouseButtonDown(0);
+        previousJumpInput = jumpInput;
+        jumpInput = Input.GetAxis("Jump");
 
-        Vector3 normalizeAxis = new Vector3(horizontal, 0, vertical).normalized;
+        Debug.Log(
+        " keyboard_horizontal_move: " + keyboard_horizontal_move + 
+        ", keyboard_vertical_move: " + keyboard_vertical_move + 
+        ", keyboard_horizontal_look: " + keyboard_horizontal_look + 
+        ", keyboard_vertical_look: " + keyboard_vertical_look + 
+        ", keyboard_shoot: " + keyboard_shoot + 
+        ", previousJumpInput: " + previousJumpInput + 
+        ", jumpInput: " + jumpInput
+            );
+
+
+
+        Vector3 normalizeAxis = new Vector3(keyboard_horizontal_move, 0, keyboard_vertical_move).normalized;
 
 
         if (normalizeAxis.magnitude > 0)
@@ -210,8 +227,6 @@ public class PlayerMovement : NetworkBehaviour
 
         grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.bounds.extents.y + .1f);
 
-        jumpInput = Input.GetAxis("Jump");
-
         //Ground Jump
         if (grounded && jumpInput != 0 && previousJumpInput == 0) //Time.time - lastJumpTime > .1
         {
@@ -221,7 +236,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             jump = 0;
         }
-
+            
         //Air Jump
         if (!grounded && airJumpCount < airJumps && jumpInput != 0 && previousJumpInput == 0)
         { 
@@ -260,18 +275,17 @@ public class PlayerMovement : NetworkBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             Cursor.lockState = CursorLockMode.Locked;
-            Cmd_Shoot();
+            Shoot();
         }
 
         if (Input.GetMouseButton(1) && Input.GetKey(KeyCode.Q))
         {
             Cursor.lockState = CursorLockMode.Locked;
 
-            Cmd_Shoot();
+            Shoot();
         }
-
-        //currentMousePosition = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-        deltaMousePosition = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+        
+        deltaMousePosition = new Vector2(keyboard_horizontal_look, keyboard_vertical_look);
 
         playerCamera.transform.Rotate(new Vector3(0, deltaMousePosition.x * lookSensitivity, 0), Space.World);
         playerCamera.transform.Rotate(new Vector3(-deltaMousePosition.y * lookSensitivity, 0, 0), Space.Self);
