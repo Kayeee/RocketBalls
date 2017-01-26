@@ -12,7 +12,8 @@ public class Level : MonoBehaviour {
     public GameObject tieText;
     public int blueScore;
     public int redScore;
-
+    public float timeScale = 1.0f;
+    
     // Use this for initialization
     void Start () {
         blueWinText.SetActive(false);
@@ -35,6 +36,22 @@ public class Level : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
+        //Debug.Log("timeScale: " + timeScale);
+
+        if (timeScale > 0)
+        {
+            Time.timeScale = timeScale;
+        }
+
+        if (Input.GetKeyUp(KeyCode.Plus) || Input.GetKeyUp(KeyCode.Equals))
+        {
+            Time.timeScale += .1f;
+        }
+        else if (Input.GetKeyUp(KeyCode.Minus))
+        {
+            Time.timeScale -= .1f;
+        }
+
         if (FindObjectsOfType<GameBall>().Length == 0)
         {
             if (blueScore > redScore)

@@ -20,11 +20,20 @@ public class PlayerMovement : NetworkBehaviour
     Rigidbody projectilePrefab;
     [SerializeField]
     float gravityMultiplier;
+    [SerializeField]
+    ProgressBar shotProgressBar;
+    [SerializeField]
+    ProgressBar runProgressBar;
+    float maxRunMultiplier = 1.5f;
+    float maxTimeRunning = 2;
+    float timeRunning = 0;
 
     Rigidbody playerRigidbody;
 
     [SerializeField]
-    float projectileForce = 1;
+    float standardProjectileForce = 3000;
+    float minProjectileForce = 500;
+    float maxProjectileForce = 8000;
 
     [SerializeField]
     Camera playerCamera;
@@ -34,6 +43,13 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField]
     float airJumps = 1;
     float airJumpCount = 0;
+
+    bool shoot = false;
+    float lastShootTime;
+    float minTimeBetweenShots = .2f;
+    bool powerShotStarted;
+    float powerShotStartTime;
+    float powerShotTimeToCharge = 1;
 
     [SerializeField]
     float moveForce = 1;
@@ -47,8 +63,13 @@ public class PlayerMovement : NetworkBehaviour
     bool grounded = false;
     float lastJumpTime;
 
+    float keyboard_special;
+    float keyboard_special_previous;
     float keyboard_horizontal_move;
     float keyboard_vertical_move;
+    bool keyboard_shoot_previous;
+    bool keyboard_shoot;
+    bool keyboard_shoot_alt;
     float jump;
     float crouch;
     
@@ -165,7 +186,7 @@ public class PlayerMovement : NetworkBehaviour
                 }
             }
 
-            if (localPlayer == LocalPlayer.P1)
+            //if (localPlayer == LocalPlayer.P1)
             {
                 ControlsKeyboard();
             }
@@ -177,118 +198,184 @@ public class PlayerMovement : NetworkBehaviour
 
     void ControlsKeyboard()
     {
-        keyboard_horizontal_move = Input.GetAxis("Horizontal");
-        keyboard_vertical_move = Input.GetAxis("Vertical");
-        float keyboard_horizontal_look = Input.GetAxis("Mouse X");
-        float keyboard_vertical_look = Input.GetAxis("Mouse Y");
-        bool keyboard_shoot = Input.GetMouseButtonDown(0);
-        previousJumpInput = jumpInput;
-        jumpInput = Input.GetAxis("Jump");
-
-        Debug.Log(
-        " keyboard_horizontal_move: " + keyboard_horizontal_move + 
-        ", keyboard_vertical_move: " + keyboard_vertical_move + 
-        ", keyboard_horizontal_look: " + keyboard_horizontal_look + 
-        ", keyboard_vertical_look: " + keyboard_vertical_look + 
-        ", keyboard_shoot: " + keyboard_shoot + 
-        ", previousJumpInput: " + previousJumpInput + 
-        ", jumpInput: " + jumpInput
-            );
-
-
-
-        Vector3 normalizeAxis = new Vector3(keyboard_horizontal_move, 0, keyboard_vertical_move).normalized;
-
-
-        if (normalizeAxis.magnitude > 0)
+        Pause pause = FindObjectOfType<Pause>();
+        if (pause == null || !pause.IsPaused)
         {
-            GetComponent<CapsuleCollider>().material.dynamicFriction = 0;
-            GetComponent<CapsuleCollider>().material.staticFriction = 0;
+
+            keyboard_horizontal_move = Input.GetAxis("Horizontal");
+            keyboard_vertical_move = Input.GetAxis("Vertical");
+            float keyboard_horizontal_look = Input.GetAxis("Mouse X");
+            float keyboard_vertical_look = Input.GetAxis("Mouse Y");
+            keyboard_shoot_previous = keyboard_shoot;
+            keyboard_shoot = Input.GetMouseButton(0);
+            keyboard_shoot_alt = Input.GetMouseButtonDown(1);
+            previousJumpInput = jumpInput;
+            jumpInput = Input.GetAxis("Jump");
+            keyboard_special_previous = keyboard_special;
+            keyboard_special = Input.GetAxis("Special");
+
+            //Debug.Log(
+            //" horz mv: " + keyboard_horizontal_move +
+            //", vert mv: " + keyboard_vertical_move +
+            //", horz lk: " + keyboard_horizontal_look +
+            //", very lk: " + keyboard_vertical_look +
+            //", shoot: " + keyboard_shoot +
+            //", jump: " + jumpInput
+            //    );
+
+            Vector3 normalizeAxis = new Vector3(keyboard_horizontal_move, 0, keyboard_vertical_move).normalized;
+
+
+            if (normalizeAxis.magnitude > 0)
+            {
+                GetComponent<CapsuleCollider>().material.dynamicFriction = 0;
+                GetComponent<CapsuleCollider>().material.staticFriction = 0;
+            }
+            else
+            {
+                GetComponent<CapsuleCollider>().material.dynamicFriction = 40;
+                GetComponent<CapsuleCollider>().material.staticFriction = 40;
+            }
+
+            float runMultiplier = 1;
+
+            Debug.Log("keyboard_special: " + keyboard_special);
+
+            if (keyboard_special > 0 && timeRunning < maxTimeRunning)
+            {
+                runMultiplier = maxRunMultiplier;
+
+                if (keyboard_special_previous > 0)
+                {
+                    timeRunning += Time.deltaTime;
+                }
+            }
+            else
+            {
+                timeRunning -= Time.deltaTime;
+
+                if (timeRunning < 0)
+                    timeRunning = 0;
+            }
+
+            float runTimeRatio = 1 - timeRunning / maxTimeRunning;
+            runProgressBar.Ratio = runTimeRatio;
+
+            float adjustedMoveForce = moveForce * runMultiplier;
+
+            if (!grounded)
+            {
+                adjustedMoveForce = moveForce / 10;
+            }
+
+            body.AddForce(playerCamera.transform.rotation * new Vector3(normalizeAxis.x, 0, 0) * adjustedMoveForce);
+
+            Quaternion verticalLook = Quaternion.AngleAxis(playerCamera.transform.rotation.eulerAngles.y, Vector3.up);
+            body.AddForce(verticalLook * new Vector3(0, 0, normalizeAxis.z) * adjustedMoveForce);
+
+            CapsuleCollider collider = GetComponent<CapsuleCollider>();
+
+            grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.bounds.extents.y + .1f);
+
+            //Ground Jump
+            if (grounded && jumpInput != 0 && previousJumpInput == 0) //Time.time - lastJumpTime > .1
+            {
+                jump = jumpInput;
+            }
+            else
+            {
+                jump = 0;
+            }
+
+            //Air Jump
+            if (!grounded && airJumpCount < airJumps && jumpInput != 0 && previousJumpInput == 0)
+            {
+                jump = jumpInput;
+                airJumpCount++;
+            }
+
+            if (grounded)
+            {
+                airJumpCount = 0;
+            }
+
+            if (jump > 0)
+            {
+                lastJumpTime = Time.time;
+            }
+
+            body.AddForce(Vector3.up * jump * jumpForce * -Physics.gravity.y);
+
+            previousJumpInput = Input.GetAxis("Jump");
+
+            if (body.velocity.magnitude > maxMoveSpeed * runMultiplier)
+            {
+                body.velocity = body.velocity.normalized * maxMoveSpeed * runMultiplier;
+            }
+
+            if (Input.GetKeyDown(KeyCode.LeftControl))
+            {
+                crouch = 1;
+            }
+            else
+            {
+                crouch = 0;
+            }
+
+            if (keyboard_shoot || keyboard_shoot_previous)
+            {
+                LockMouse();
+
+                Shoot();
+            }
+
+            if (keyboard_shoot_alt)
+            {
+                LockMouse();
+
+                ShootAlt();
+            }
+
+            //Shoot Cheat
+            if (Input.GetMouseButton(1) && Input.GetKey(KeyCode.Q))
+            {
+                ShootAlt();
+            }
+
+            deltaMousePosition = new Vector2(keyboard_horizontal_look, keyboard_vertical_look);
+
+            playerCamera.transform.Rotate(new Vector3(0, deltaMousePosition.x * lookSensitivity, 0), Space.World);
+            playerCamera.transform.Rotate(new Vector3(-deltaMousePosition.y * lookSensitivity, 0, 0), Space.Self);
+
+            Vector3 look_rotation = playerCamera.transform.localEulerAngles;
+            float vertical_look_rotation = look_rotation.x;
+            //if (vertical_look_rotation > 180)
+            //{
+            //    vertical_look_rotation -= 360;
+            //}
+            //if (vertical_look_rotation < -180)
+            //{
+            //    vertical_look_rotation += 360;
+            //}
+            //Debug.Log("look_rotation: " + look_rotation);
+            //if (vertical_look_rotation > 90 || vertical_look_rotation < -90)
+            //{
+            //    float polarity = Mathf.Abs(vertical_look_rotation) / vertical_look_rotation;
+            //    Vector3 bounded_look_rotation = new Vector3(90 * polarity, look_rotation.y, look_rotation.z);
+            //    //playerCamera.transform.rotation = Quaternion.Euler(bounded_look_rotation);
+            //    playerCamera.transform.localEulerAngles = bounded_look_rotation;
+            //}
         }
-        else
-        {
-            GetComponent<CapsuleCollider>().material.dynamicFriction = 40;
-            GetComponent<CapsuleCollider>().material.staticFriction = 40;
-        }
+    }
 
-        float adjustedMoveForce = moveForce;
+    public void LockMouse()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+    }
 
-        if (!grounded)
-        {
-            adjustedMoveForce = moveForce / 10;
-        }
-
-        body.AddForce(playerCamera.transform.rotation * new Vector3(normalizeAxis.x, 0, 0) * adjustedMoveForce);
-
-        Quaternion verticalLook = Quaternion.AngleAxis(playerCamera.transform.rotation.eulerAngles.y, Vector3.up);
-        body.AddForce(verticalLook * new Vector3(0, 0, normalizeAxis.z) * adjustedMoveForce);
-
-        CapsuleCollider collider = GetComponent<CapsuleCollider>();
-
-        grounded = Physics.Raycast(new Ray(transform.position, Vector3.down), collider.bounds.extents.y + .1f);
-
-        //Ground Jump
-        if (grounded && jumpInput != 0 && previousJumpInput == 0) //Time.time - lastJumpTime > .1
-        {
-            jump = jumpInput;
-        }
-        else
-        {
-            jump = 0;
-        }
-            
-        //Air Jump
-        if (!grounded && airJumpCount < airJumps && jumpInput != 0 && previousJumpInput == 0)
-        { 
-            jump = jumpInput;
-            airJumpCount++;
-        }
-        
-        if (grounded)
-        {
-            airJumpCount = 0;
-        }
-
-        if (jump > 0)
-        {
-            lastJumpTime = Time.time;
-        }
-
-        body.AddForce(Vector3.up * jump * jumpForce * -Physics.gravity.y);
-
-        previousJumpInput = Input.GetAxis("Jump");
-
-        if (body.velocity.magnitude > maxMoveSpeed)
-        {
-            body.velocity = body.velocity.normalized * maxMoveSpeed;
-        }
-
-        if (Input.GetKeyDown(KeyCode.LeftControl))
-        {
-            crouch = 1;
-        }
-        else
-        {
-            crouch = 0;
-        }
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Shoot();
-        }
-
-        if (Input.GetMouseButton(1) && Input.GetKey(KeyCode.Q))
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-
-            Shoot();
-        }
-        
-        deltaMousePosition = new Vector2(keyboard_horizontal_look, keyboard_vertical_look);
-
-        playerCamera.transform.Rotate(new Vector3(0, deltaMousePosition.x * lookSensitivity, 0), Space.World);
-        playerCamera.transform.Rotate(new Vector3(-deltaMousePosition.y * lookSensitivity, 0, 0), Space.Self);
+    public void UnLockMouse()
+    {
+        Cursor.lockState = CursorLockMode.None;
     }
 
     void ControllsController()
@@ -367,7 +454,7 @@ public class PlayerMovement : NetworkBehaviour
             {
                 previousFireButtonState = true;
 
-                Cmd_Shoot();
+                Cmd_ShootAlt();
             }
         }
         else
@@ -388,28 +475,73 @@ public class PlayerMovement : NetworkBehaviour
     //}
 
     [Command]
-    public void Cmd_Shoot()
+    public void Cmd_ShootAlt()
     {
-        Shoot();
+        ShootAlt();
     }
 
     public void Shoot()
     {
-        Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
-        tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
-        tempProjectile.AddForce(body.velocity);
-        NetworkServer.Spawn(tempProjectile.gameObject);
+        float chargeTime = 0;
+        float powerRatio = 0;
+
+        if (powerShotStarted)
+        {
+            chargeTime = Time.time - powerShotStartTime;
+            powerRatio = chargeTime / powerShotTimeToCharge;
+
+            if (powerRatio > 1)
+            {
+                //powerRatio = .9f;
+                powerRatio = UnityEngine.Random.Range(.8f, 1f);
+            }
+            else if (powerRatio > .95f)
+            {
+                powerRatio = 1f;
+            }
+        }
+
+        shotProgressBar.Ratio = powerRatio;
+
+        if (!keyboard_shoot_previous && keyboard_shoot) //Shot started
+        {
+            powerShotStarted = true;
+            powerShotStartTime = Time.time;
+        }
+
+        if (keyboard_shoot && keyboard_shoot_previous) //Shot Charging
+        {
+
+        }
+
+        if (keyboard_shoot_previous && !keyboard_shoot) //Shot ended
+        {
+            powerShotStarted = false;
+
+            if (Time.time - lastShootTime > minTimeBetweenShots)
+            {
+                float shotPower = minProjectileForce + (maxProjectileForce - minProjectileForce) * powerRatio;
+
+                Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
+                tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * shotPower);
+                tempProjectile.AddForce(body.velocity);
+                NetworkServer.Spawn(tempProjectile.gameObject);
+
+                lastShootTime = Time.time;
+            }
+        }
     }
 
-
-    [Command]
-    public void Cmd_ShootSmall()
+    public void ShootAlt()
     {
-        Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
-        tempProjectile.transform.localScale = Vector3.one / 2;
-        tempProjectile.GetComponent<Rigidbody>().mass = .5f;
-        tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * projectileForce);
-        tempProjectile.AddForce(body.velocity);
-        NetworkServer.Spawn(tempProjectile.gameObject);
+        if (Time.time - lastShootTime > minTimeBetweenShots)
+        {
+            Rigidbody tempProjectile = Instantiate<Rigidbody>(projectilePrefab, projectileOrigin.transform.position, projectileOrigin.transform.rotation);
+            tempProjectile.AddForce(playerCamera.transform.rotation * Vector3.forward * standardProjectileForce);
+            tempProjectile.AddForce(body.velocity);
+            NetworkServer.Spawn(tempProjectile.gameObject);
+
+            lastShootTime = Time.time;
+        }
     }
 }

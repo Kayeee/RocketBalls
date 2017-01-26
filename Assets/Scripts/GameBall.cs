@@ -13,6 +13,11 @@ public class GameBall : MonoBehaviour {
 
     Goal[] goals;
 
+    Rigidbody rigidbody;
+    [SerializeField]
+    float maxSpeed = 2000;
+
+
     AudioSource ballSounds;
 
 	// Use this for initialization
@@ -20,11 +25,17 @@ public class GameBall : MonoBehaviour {
     {
         ballSounds = GetComponent<AudioSource>();
         goals = FindObjectsOfType<Goal>();
+        rigidbody = GetComponent<Rigidbody>();
     }
 
     // Update is called once per frame
     void Update ()
     {
+        if (rigidbody.velocity.magnitude > maxSpeed)
+        {
+            rigidbody.velocity = rigidbody.velocity.normalized * maxSpeed;
+        }
+
 		foreach (Goal goal in goals)
         {            
             if (Mathf.Abs(transform.position.x - goal.transform.position.x) < 25 * 2 &&

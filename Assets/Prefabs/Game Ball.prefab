@@ -108,6 +108,7 @@ MeshRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
+  m_SortingLayer: 0
   m_SortingOrder: 0
 --- !u!23 &23635318424304076
 MeshRenderer:
@@ -139,6 +140,7 @@ MeshRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
+  m_SortingLayer: 0
   m_SortingOrder: 0
 --- !u!33 &33524508197649708
 MeshFilter:
@@ -161,14 +163,14 @@ Rigidbody:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1462154060457462}
   serializedVersion: 2
-  m_Mass: 2
+  m_Mass: 3
   m_Drag: 0
   m_AngularDrag: 0.05
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 2
 --- !u!82 &82464615449332468
 AudioSource:
   m_ObjectHideFlags: 1
@@ -263,6 +265,7 @@ MonoBehaviour:
   celebrationPrefab: {fileID: 1692785598203714, guid: 40606b2e454d8e94780a47e347e6c23c,
     type: 2}
   bounds: {fileID: 1453931490022204}
+  maxSpeed: 30
 --- !u!114 &114171761373600034
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -329,6 +332,7 @@ MonoBehaviour:
   m_RotationSyncCompression: 0
   m_SyncSpin: 0
   m_MovementTheshold: 0.001
+  m_VelocityThreshold: 0.0001
   m_SnapThreshold: 5
   m_InterpolateRotation: 1
   m_InterpolateMovement: 1

@@ -566,6 +566,22 @@ InputManager:
     axis: 9
     joyNum: 4
   - serializedVersion: 3
+    m_Name: Special
+    descriptiveName: 
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: left shift
+    altNegativeButton: 
+    altPositiveButton: 
+    gravity: 1000
+    dead: 0.001
+    sensitivity: 1000
+    snap: 0
+    invert: 0
+    type: 0
+    axis: 27
+    joyNum: 4
+  - serializedVersion: 3
     m_Name: P1_Horizontal_Look
     descriptiveName: 
     descriptiveNegativeName: 
